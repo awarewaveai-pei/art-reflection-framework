@@ -1,0 +1,51 @@
+name: SABRDF public research index sync
+on:
+  schedule:
+    - cron: '10 1 * * *'
+    - cron: '10 2 * * 0'
+    - cron: '30 2 1 * *'
+  workflow_dispatch:
+    inputs:
+      period:
+        description: "Research update type"
+        required: true
+        type: choice
+        options:
+          - daily
+          - weekly
+          - monthly
+permissions:
+  contents: write
+concurrency:
+  group: sabrdf-research-index
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Select report period and update source index
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
+          REQUESTED_PERIOD: ${{ inputs.period }}
+        run: |
+          case "$EVENT_NAME:$SCHEDULE_CRON" in
+            schedule:"10 2 * * 0") PERIOD=weekly ;;
+            schedule:"30 2 1 * *") PERIOD=monthly ;;
+            schedule:*) PERIOD=daily ;;
+            workflow_dispatch:*) PERIOD="$REQUESTED_PERIOD" ;;
+          esac
+          python scripts/sync_public_research.py --period "$PERIOD"
+      - name: Commit index if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/reports.json
+          if git diff --cached --quiet; then echo "No new verified research"; exit 0; fi
+          git commit -m "Sync SABRDF public research index"
+          git pull --rebase origin main
+          git push origin HEAD:main
