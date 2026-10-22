@@ -1,5 +1,9 @@
 name: SABRDF public research index sync
 on:
+  push:
+    paths:
+      - 'scripts/sync_public_research.py'
+      - '.github/workflows/research-sync.yml'
   schedule:
     - cron: '10 1 * * *'
     - cron: '10 2 * * 0'
