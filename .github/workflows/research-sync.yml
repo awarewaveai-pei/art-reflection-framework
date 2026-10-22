@@ -40,8 +40,9 @@ jobs:
           case "$EVENT_NAME:$SCHEDULE_CRON" in
             schedule:"10 2 * * 0") PERIOD=weekly ;;
             schedule:"30 2 1 * *") PERIOD=monthly ;;
-            schedule:*) PERIOD=daily ;;
             workflow_dispatch:*) PERIOD="$REQUESTED_PERIOD" ;;
+            schedule:*) PERIOD=daily ;;
+            push:*) PERIOD=daily ;;
           esac
           python scripts/sync_public_research.py --period "$PERIOD"
       - name: Commit index if changed
